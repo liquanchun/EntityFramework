@@ -4,11 +4,11 @@
 using System;
 using System.Data.Common;
 using System.Diagnostics;
+using System.Threading;
+using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore.Diagnostics;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Internal;
-using Microsoft.EntityFrameworkCore.Storage.Internal;
 using Microsoft.EntityFrameworkCore.Utilities;
 
 namespace Microsoft.EntityFrameworkCore.Storage
@@ -32,6 +32,8 @@ namespace Microsoft.EntityFrameworkCore.Storage
         private readonly DateTimeOffset _startTime;
         private readonly Stopwatch _stopwatch;
 
+        private int _readCount;
+        
         private bool _disposed;
 
         /// <summary>
@@ -77,6 +79,28 @@ namespace Microsoft.EntityFrameworkCore.Storage
         public virtual DbDataReader DbDataReader => _reader;
 
         /// <summary>
+        ///     Calls Read on the underlying DbDataReader.
+        /// </summary>
+        /// <returns>true if there are more rows; otherwise false.</returns>
+        public virtual bool Read()
+        {
+            _readCount++;
+
+            return _reader.Read();
+        }
+
+        /// <summary>
+        ///     Calls Read on the underlying DbDataReader.
+        /// </summary>
+        /// <returns>true if there are more rows; otherwise false.</returns>
+        public virtual Task<bool> ReadAsync(CancellationToken cancellationToken = default(CancellationToken))
+        {
+            _readCount++;
+            
+            return _reader.ReadAsync(cancellationToken);
+        }
+
+        /// <summary>
         ///     Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
         /// </summary>
         public virtual void Dispose()
@@ -89,6 +113,7 @@ namespace Microsoft.EntityFrameworkCore.Storage
                     _reader,
                     _commandId,
                     _reader.RecordsAffected,
+                    _readCount,
                     _startTime,
                     _stopwatch.Elapsed);
 
